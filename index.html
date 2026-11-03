@@ -149,4 +149,78 @@ h1{font-size:0;max-width:none;white-space:nowrap}h1 span{display:none}h1:before{
  dialog.addEventListener('close',()=>{paused=wasPaused;render()});
  dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
 })();
+</script>
+<style>
+.lesson-focus{outline:3px solid #dc841e!important;outline-offset:2px!important;box-shadow:0 0 0 5px #ffdf8b80;animation:lessonPulse 1.3s ease-in-out infinite}
+@keyframes lessonPulse{50%{box-shadow:0 0 0 8px #ffdf8b30}}@media(prefers-reduced-motion:reduce){.lesson-focus{animation:none}}
+.levelnav{grid-template-columns:repeat(7,minmax(0,1fr))}.levelnav button{padding:5px 7px}.levelnav button:disabled{opacity:.35;cursor:default}
+.stage.lesson .status{background:#fff0c8;color:#594221;border-top:2px solid #e7b15b;font-weight:600;min-height:64px}
+#lessonTag{font-size:10px;color:#805519;margin-left:6px}.lesson-muted{opacity:.5}
+@media(max-width:700px) and (orientation:portrait){.stage.lesson .status{font-size:11px;min-height:64px}.stage.lesson canvas{max-height:calc(100% - 70px)}.stage.lesson:has(.next:not([hidden])) canvas{max-height:calc(100% - 106px)}}
+@media(max-width:360px) and (orientation:portrait){.stage.lesson .status{font-size:10px}}
+</style>
+<script>
+// Short, single-concept rooms precede the original puzzles. Their physics is unchanged.
+const trainingRooms=[
+ {title:'Mở lối cho thỏ',lesson:'rock',start:[2,4],target:'flag',rules:{flag:'win',rock:'stop'},bank:['pass'],locked:['flag'],walls:corridor((x,y)=>y===4),objects:[['rock',5,4],['flag',9,4]],intro:'',solutions:'Chạm STOP trong câu ĐÁ LÀ, rồi chạm PASS ở khay. Thỏ tự đi xuyên qua đá tới cờ.'},
+ {title:'Tự mở đường qua nước',lesson:'water',start:[2,4],target:'flag',rules:{flag:'win',water:'stop'},bank:['pass'],locked:['flag'],walls:corridor((x,y)=>y===4),objects:[['water',5,4],['flag',9,4]],intro:'',solutions:'Chọn ô STOP của NƯỚC, sau đó chọn PASS. Không cần điều khiển thỏ bằng phím.'},
+ {title:'Đổi đích, không đổi đường',lesson:'goal',start:[2,4],target:'flag',rules:{flag:'win',rock:'stop',water:'stop'},bank:[],locked:['water'],walls:corridor((x,y)=>y===4),objects:[['rock',4,4],['water',6,4],['flag',9,4]],intro:'',solutions:'Chọn WIN của CỜ rồi STOP của ĐÁ để tráo tính chất. Sau đó chọn ô CỜ trong THỎ TÌM và danh từ ĐÁ trong khay.'},
+ {title:'Một từ, hai chặng',lesson:'reuse',start:[2,4],target:'flag',rules:{flag:'win',rock:'stop',water:'stop'},bank:['pass'],locked:['flag'],walls:corridor((x,y)=>y===4),objects:[['rock',4,4],['water',7,4],['flag',10,4]],intro:'',solutions:'ĐÁ → PASS. Đợi thỏ qua đá tới bờ giữa. Chọn PASS của ĐÁ rồi STOP của NƯỚC để chuyển PASS sang nước.'},
+ {title:'Bạn tự giải được rồi!',lesson:'practice',start:[2,4],target:'flag',rules:{flag:'win',rock:'stop',water:'stop'},bank:['pass'],locked:['flag'],walls:corridor((x,y)=>y===4),objects:[['water',4,4],['rock',7,4],['flag',10,4]],intro:'',solutions:'Lần này nước xuất hiện trước: NƯỚC → PASS. Khi thỏ đã qua nước, chuyển PASS từ NƯỚC sang ĐÁ.'}
+];
+// Introduce resource transfer before the original bridge/pressure timing puzzle.
+const originalRooms=[...LEVELS];
+LEVELS.splice(0,LEVELS.length,...trainingRooms,...[0,1,3,4,2,5,6,7,8,9].map(i=>originalRooms[i]));
+LEVELS.forEach((l,i)=>{l.title=String(i+1).padStart(2,'0')+' · '+l.title.replace(/^\d+ · /,'')});
+let lessonMoves=0,lessonCheckpoint=false;
+const baseRender=render,baseReport=report,baseRestart=restart,baseStep=step,baseApply=applySelection,baseSelect=select;
+function tutorialPlan(){
+ const k=LEVELS[level].lesson;
+ if(!k)return null;
+ const rule=key=>({type:'rule',key}),word=value=>({type:'bank',i:bank.indexOf(value)});
+ if(won)return {text:'✓ Bạn đã hiểu cơ chế này! Bấm “Màn tiếp theo” để thử bước mới.'};
+ if(k==='rock'||k==='water'){
+  if(rules[k]==='pass')return {text:'Đúng rồi! PASS = đi xuyên qua. Hãy xem thỏ tự đi tới cờ — bạn không cần bấm phím di chuyển.'};
+  return {pair:[rule(k),word('pass')],text:'Bước 1: chạm ô STOP trong câu '+NAMES[k]+' LÀ. Bước 2: chạm PASS ở khay từ bên dưới. Ô cần bấm có viền cam.'};
+ }
+ if(k==='goal'){
+  if(rules.rock!=='win')return {pair:[rule('flag'),rule('rock')],text:'1/2 · Chạm WIN của CỜ, rồi chạm STOP của ĐÁ để tráo từ. Hòn đá sẽ trở thành đích thắng.'};
+  if(target!=='rock')return {pair:[{type:'target'},{type:'noun',key:'rock'}],text:'2/2 · Đá đã mang WIN! Chạm CỜ trong câu THỎ TÌM, rồi chạm ĐÁ ở khay DANH TỪ.'};
+  return {text:'Rất tốt! Thỏ đang tìm đá. Bạn có thể thay đích chiến thắng, không nhất thiết phải tới lá cờ.'};
+ }
+ if(k==='reuse'){
+  if(rules.rock!=='pass'&&rules.water!=='pass')return {pair:[rule('rock'),word('pass')],text:'1/3 · Mở chặng đầu: chạm STOP của ĐÁ, rồi PASS ở khay. Chỉ có một từ PASS cho cả hai chặng.'};
+  if(rules.rock==='pass'&&rabbit.x<=4)return {wait:true,text:'2/3 · Đợi thỏ qua hẳn đá. Game sẽ tự dừng ở bờ an toàn để bạn chuyển từ; chưa đổi luật lúc này.'};
+  if(rules.rock==='pass')return {pair:[rule('rock'),rule('water')],text:'3/3 · Thỏ đã qua đá. Chạm PASS của ĐÁ, rồi STOP của NƯỚC. PASS được chuyển sang nước, đá nhận lại STOP.'};
+  return {text:'Chính xác! Một từ PASS đã mở hai chặng. Thỏ tiếp tục qua nước tới cờ.'};
+ }
+ return {text:'Tự thử nhé: vượt nước trước, đá sau. Dùng lại một từ PASS; đợi thỏ qua vật cản rồi mới chuyển. Nếu nhầm, bấm ↶ Lùi.'};
+}
+function sameRef(a,b){return a&&b&&a.type===b.type&&a.key===b.key&&a.i===b.i}
+function selectorFor(s){return s.type==='rule'?'[data-rule="'+s.key+'"]':s.type==='bank'?'[data-bank="'+s.i+'"]':s.type==='noun'?'[data-noun="'+s.key+'"]':'[data-'+s.type+']'}
+function paintLesson(){
+ const plan=tutorialPlan();document.querySelector('.stage').classList.toggle('lesson',!!plan);
+ document.querySelectorAll('.lesson-focus').forEach(el=>el.classList.remove('lesson-focus'));
+ if(!plan)return;
+ if(plan.pair){const next=selected&&sameRef(selected,plan.pair[0])?plan.pair[1]:selected&&sameRef(selected,plan.pair[1])?plan.pair[0]:plan.pair[0];document.querySelector(selectorFor(next))?.classList.add('lesson-focus')}
+ $('status').textContent=plan.text;
+ $('selected').textContent=plan.pair?'☝ '+(selected?'Đã chọn. Bây giờ chạm ô có viền cam.':'Chạm ô có viền cam để bắt đầu.'):'Thỏ tự di chuyển · PASS: đi xuyên · WIN: chạm để thắng';
+}
+render=function(){
+ baseRender();
+ const start=Math.floor(level/5)*5;
+ $('levelnav').innerHTML=`<button aria-label="Nhóm màn trước" onclick="loadLevel(${Math.max(0,start-5)})" ${start===0?'disabled':''}>‹</button>`+LEVELS.slice(start,start+5).map((l,j)=>{const i=start+j;return `<button title="${l.title}" aria-label="Màn ${i+1}: ${l.title}" class="${level===i?'current':''} ${completed.has(i)?'done':''}" onclick="loadLevel(${i})">${i+1}</button>`}).join('')+`<button aria-label="Nhóm màn sau" onclick="loadLevel(${Math.min(LEVELS.length-1,start+5)})" ${start+5>=LEVELS.length?'disabled':''}>›</button>`;
+ $('levelTitle').textContent=LEVELS[level].title+(level<5?' · Làm quen':' · Thử thách')+' ('+(level+1)+'/'+LEVELS.length+')';
+ // Early rooms only expose the sentence rows needed for the current concept.
+ $('nounBank').hidden=false;$('nounBank').previousElementSibling.hidden=false;
+ if(level<5){document.querySelector('[data-identity]').closest('.row').hidden=true;document.querySelector('[data-target]').closest('.row').hidden=level!==2;const showNouns=level===2&&rules.rock==='win';$('nounBank').hidden=!showNouns;$('nounBank').previousElementSibling.hidden=!showNouns;}
+ paintLesson();
+};
+report=function(t){baseReport(t);paintLesson()};
+restart=function(){lessonMoves=0;lessonCheckpoint=false;baseRestart()};
+select=function(s){const plan=tutorialPlan();if(plan&&LEVELS[level].lesson!=='practice'&&!won){if(!plan.pair||!plan.pair.some(a=>sameRef(a,s))){paintLesson();return}}baseSelect(s)};
+applySelection=function(a,b){const plan=tutorialPlan();if(plan&&LEVELS[level].lesson!=='practice'&&!won){if(!plan.pair||!((sameRef(a,plan.pair[0])&&sameRef(b,plan.pair[1]))||(sameRef(b,plan.pair[0])&&sameRef(a,plan.pair[1])))){paintLesson();return}}lessonMoves++;baseApply(a,b)};
+step=function(){if(LEVELS[level].lesson==='reuse'&&rules.rock==='pass'&&rabbit.x>4){lessonCheckpoint=true;paintLesson();return}baseStep();if(LEVELS[level].lesson)paintLesson()};
+document.querySelector('#helpContent footer').textContent='15 màn: 5 màn làm quen có hướng dẫn và 10 câu đố mở rộng. Thỏ hoặc vai đang điều khiển chạm vật mang WIN để thắng.';
+restart();
 </script></body></html>
