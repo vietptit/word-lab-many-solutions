@@ -103,4 +103,50 @@ if(driver!=='rabbit')c.globalAlpha=.38;let q=p(visual.x,visual.y),bob=won?Math.s
 }
 function frame(t){let dt=Math.min(.04,(t-last)/1000||.016);last=t;time+=dt;if(!paused&&!won){tick+=dt;if(tick>.38){tick=0;step()}}visual.x+=(rabbit.x-visual.x)*.18;visual.y+=(rabbit.y-visual.y)*.18;paint();requestAnimationFrame(frame)}
 restart();requestAnimationFrame(frame);
+</script>
+<style>
+/* One-screen play area; long instructions live in an accessible help dialog. */
+html{height:100%;overflow:hidden}body{height:100%;height:100dvh;overflow:hidden}
+.app{width:min(1240px,100%);height:100%;height:100dvh;max-width:1240px;margin:0 auto;padding:12px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr);grid-template-rows:auto auto minmax(0,1fr);gap:10px 18px;border-radius:0;overflow:auto}
+header{grid-column:1/-1;gap:8px}h1{font-size:clamp(16px,2vw,24px)}.tools{flex-shrink:0;gap:5px}.tools button{min-height:36px;padding:6px 9px;white-space:nowrap}
+.app>.sub,.app>footer{display:none}.levelbar{grid-column:1/-1;margin:0;gap:6px;display:flex;align-items:center}.leveltitle{font-size:13px;margin:0}.levelnav{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;flex-shrink:0}.levelnav button{padding:5px 8px;min-width:30px;min-height:32px}
+.stage{min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+canvas{width:100%;height:auto;max-height:calc(100% - 86px);min-height:0!important;aspect-ratio:720/450;object-fit:contain;flex:0 1 auto}
+.status{width:100%;min-height:44px;padding:7px 10px;font-size:12px;line-height:1.4;flex-shrink:0}.next{min-height:32px;margin:4px 8px;padding:5px 12px;flex-shrink:0}
+.under{min-width:0;min-height:0;margin:0;display:flex;flex-direction:column;gap:10px;align-self:center;max-height:100%;overflow:auto;padding:3px}
+.under section{min-width:0}.under h2{font-size:15px;text-align:left;margin:0 0 7px}.under .note{display:none}
+#rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px}.sentence-gap{display:none}.row{margin:0;gap:4px;justify-content:space-between;min-width:0}
+.noun{font-size:11px;min-width:34px}.row .verb{font-size:9px;min-width:19px}.slot{min-width:0;flex:1;max-width:110px;padding:6px 4px;min-height:36px;font-size:12px}.chip{min-width:0;padding:6px 10px;min-height:36px;font-size:12px}
+.bank{padding:0;gap:5px;justify-content:flex-start}.bank-label{margin:7px 0 4px;font-size:9px;letter-spacing:.5px}#selected{font-size:11px;line-height:1.35;min-height:30px;margin:7px 0 0;text-align:left}.slot.selected,.chip.selected,.slot[aria-pressed=true]{outline-width:2px;outline-offset:1px}
+#helpDialog{width:min(560px,calc(100% - 24px));max-height:85dvh;border:1px solid #bdcfa6;border-radius:16px;background:#fffdf4;color:#35433c;padding:20px;overflow:auto}
+#helpDialog::backdrop{background:#20312880}#helpDialog h2{margin:0 0 12px}#helpDialog .note,#helpDialog .sub{display:block;text-align:left;color:#596b52}#helpDialog .legend{color:#596b52;font-size:13px}#helpDialog details{color:#596b52;font-size:13px}#helpDialog button{padding:9px 15px;border:1px solid #a8bd93;background:#e6edba;border-radius:8px;float:right}#helpDialog footer{font-size:12px}
+@media(max-width:700px) and (orientation:portrait){
+.app{padding:max(7px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(130px,1fr) auto;gap:7px}
+header{align-items:center}h1{font-size:15px;line-height:1.2;max-width:160px}.tools{gap:3px}.tools button{font-size:11px;padding:5px 6px;min-height:32px}.tools button:last-child{padding:5px 9px}
+.levelbar{display:flex;flex-direction:column;align-items:stretch;gap:5px}.leveltitle{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.levelnav{width:100%;gap:3px}.levelnav button{padding:4px 0;min-width:0;min-height:30px;font-size:11px}.levelnav button.done:after{display:none}
+canvas{max-height:calc(100% - 52px)}.stage:has(.next:not([hidden])) canvas{max-height:calc(100% - 88px)}.status{font-size:11px;min-height:38px;padding:5px 8px}
+.under{align-self:stretch;overflow:visible;max-height:none;gap:5px;padding:2px}.under h2{font-size:12px;margin-bottom:4px}#rules{gap:4px 12px}.slot{min-height:32px;padding:4px;font-size:11px}.chip{min-height:32px;padding:4px 8px;font-size:11px}#selected{font-size:10px;min-height:26px;margin-top:5px}.bank-label{margin:4px 0 3px}.bank{gap:4px}.noun{font-size:10px}.under section:last-child h2{display:none}
+}
+@media(max-height:500px) and (orientation:landscape){.app{padding:6px;gap:5px 10px;grid-template-columns:minmax(0,1fr) minmax(320px,1fr)}h1{font-size:16px}.tools button{min-height:30px}.levelnav button{min-height:27px}.leveltitle{font-size:11px}.under{gap:4px}.under h2{font-size:12px;margin-bottom:3px}#rules{gap:3px 8px}.slot,.chip{min-height:28px;font-size:10px;padding:3px 5px}#selected{min-height:24px;font-size:10px;margin:3px 0}.bank-label{margin:3px 0}.bank{gap:3px}.under section:last-child h2{display:none}}
+</style>
+<style>
+@media(max-width:360px) and (orientation:portrait){
+h1{font-size:0;max-width:none;white-space:nowrap}h1 span{display:none}h1:before{content:'Word Lab';font-size:16px}.tools button{font-size:10px;padding:4px 5px}.app{gap:5px;grid-template-rows:auto auto minmax(120px,1fr) auto}.levelbar{gap:3px}.levelnav button{min-height:27px}
+#rules{gap:3px 8px}.slot{min-height:28px;font-size:10px;white-space:nowrap;padding:3px 2px}.noun{min-width:30px;font-size:9px}.row .verb{min-width:16px;font-size:8px}.row{gap:2px}
+#nounBank{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:2px}#nounBank .chip{padding:3px 0;font-size:9px;min-height:30px}#selected{font-size:9px;min-height:24px}.under h2{font-size:11px}.bank-label{font-size:8px}.status{font-size:10px}
+}
+</style>
+<dialog id="helpDialog" aria-labelledby="helpTitle"><button id="closeHelp" type="button">Đóng ×</button><h2 id="helpTitle">Cách chơi Word Lab</h2><div id="helpContent"></div></dialog>
+<script>
+(function(){
+ const dialog=document.getElementById('helpDialog'),content=document.getElementById('helpContent'),button=document.createElement('button');
+ button.type='button';button.textContent='?';button.title='Hướng dẫn và lời giải';button.setAttribute('aria-label','Hướng dẫn và lời giải');
+ document.querySelector('.tools').append(button);
+ document.querySelectorAll('.app>.sub,.under .note,.under .legend,.under details,.app>footer').forEach(el=>content.append(el));
+ let wasPaused=false;
+ button.onclick=()=>{wasPaused=paused;paused=true;render();dialog.showModal()};
+ document.getElementById('closeHelp').onclick=()=>dialog.close();
+ dialog.addEventListener('close',()=>{paused=wasPaused;render()});
+ dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
+})();
 </script></body></html>
